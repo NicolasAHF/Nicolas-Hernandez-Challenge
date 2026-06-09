@@ -7,22 +7,24 @@ Status legend: ⬜ not started · 🟡 in progress · ✅ done · 🧪 tests gre
 
 ---
 
-## Feature: Plan rebalancing suggestion  ⬜
+## Feature: Plan rebalancing suggestion  🧪
 
 > As a user, I want the system to suggest how to rebalance my study plan when it is
 > overloaded, so that I can better distribute my effort.
 
 Requirements:
-- [ ] `GET /plans/{id}/rebalance` endpoint
-- [ ] When total task hours exceed `hours_per_week`, return: a suggested reduction
-      per task **or** a suggested redistribution across weeks
-- [ ] Deterministic (no AI / randomness / time dependence)
-- [ ] Logic in the service layer
-- [ ] Response format clear and structured
-- [ ] Suggestions visible in the plan detail view (frontend)
+- [x] `GET /plans/{id}/rebalance` endpoint
+- [x] When total task hours exceed `hours_per_week`, suggest a week-by-week schedule
+      that spreads whole tasks across weeks (redistribution; see DECISIONS)
+- [x] Deterministic (no AI / randomness / time dependence)
+- [x] Logic in the service layer (`PlanService.get_rebalance`)
+- [x] Response format clear and structured (`PlanRebalance` schema)
+- [x] Suggestions visible in the plan detail view (overloaded panel)
 
 Branch: `feat/plan-rebalance` · PR: —
-Notes / next step:
+Notes / next step: implemented (see DECISIONS.md 2026-06-09). 32 backend tests green
+(6 rebalance tests, incl. oversized-task splitting), frontend builds. Awaiting
+review/merge.
 
 ---
 

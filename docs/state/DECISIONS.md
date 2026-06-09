@@ -16,6 +16,39 @@ Template:
 
 ---
 
+## 2026-06-09 — Plan rebalancing: weekly schedule across weeks  [rebalance]
+
+**Context:** `GET /plans/{id}/rebalance` must, when a plan's total task hours exceed
+`hours_per_week`, suggest either a per-task reduction **or** a redistribution across
+weeks. Deterministic, logic in the service.
+
+**Decisions:**
+- **Redistribute across weeks, not reduce per task.** A task's `estimated_hours` is
+  the effort the task genuinely needs — it is not a flexible budget. Suggesting "do
+  this 12h task in 6h" is meaningless; the work still takes 12h. So instead of
+  shrinking tasks we keep every task's hours intact and spread them over more weeks.
+- **Split tasks larger than the weekly budget.** A task whose `estimated_hours`
+  exceeds `hours_per_week` can't fit in a single week, so it is broken into parts of
+  at most `hours_per_week` each (full chunks plus a remainder), named `"<title> -1"`,
+  `"<title> -2"`, … Every resulting unit is ≤ the weekly budget, so no week ever
+  exceeds it.
+- **Greedy week-by-week packing.** After splitting, iterate the units in task-id
+  order; fill the current week until adding the next unit would exceed
+  `hours_per_week`, then start a new week. Deterministic. `weeks_needed` = number of
+  weeks produced. A split remainder can share a week with the next task's unit.
+- **Response shape:** `overloaded`, `hours_per_week`, `total_estimated_hours`,
+  `weeks_needed`, and `schedule` (a list of `{week, tasks:[{task_id,title,hours}],
+  total_hours}`). Split parts keep the parent `task_id` and carry the `-N` suffix in
+  `title`. When not overloaded → `overloaded: false`, `schedule: []`. `404` if the
+  plan does not exist.
+
+**Trade-offs:** greedy first-fit by id keeps tasks in their natural order but may not
+pack weeks as tightly as first-fit-decreasing; chosen for predictability and because
+study tasks are usually done in order. Splitting assumes a task's hours can be done in
+independent chunks, which is a reasonable simplification for study time.
+
+---
+
 ## 2026-06-09 — Plan metrics: computation, percentage basis & format  [metrics]
 
 **Context:** `GET /plans/{id}/metrics` must return total/completed tasks, completion
@@ -49,11 +82,6 @@ to optimize.
 
 These are flagged now so the decisions are deliberate, not accidental:
 
-- **Rebalance algorithm:** what exactly does "suggested reduction per task" vs
-  "redistribution across weeks" mean numerically? Need a deterministic, explainable
-  rule (e.g. scale each task's hours down proportionally so the total fits
-  `hours_per_week`, and/or spread the overflow across N weeks until a target date).
-  Document the chosen formula and why.
 - **Cache TTL:** pick a value and justify. Because every relevant write invalidates
   the key, the TTL is a backstop for missed invalidations, not the main freshness
   mechanism → a short/moderate TTL (e.g. 300s) balances bounded staleness against
