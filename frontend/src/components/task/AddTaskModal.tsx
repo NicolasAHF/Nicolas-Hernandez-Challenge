@@ -38,6 +38,7 @@ export default function AddTaskModal({ opened, onClose, planId }: Props) {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["tasks", planId] });
       qc.invalidateQueries({ queryKey: ["metrics", planId] });
+      qc.invalidateQueries({ queryKey: ["rebalance", planId] });
       qc.invalidateQueries({ queryKey: ["taskStats"] });
       handleClose();
     },

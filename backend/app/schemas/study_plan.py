@@ -33,3 +33,23 @@ class PlanMetrics(BaseModel):
     completion_percentage: int
     total_estimated_hours: float
     completed_hours: float
+
+
+class ScheduledTask(BaseModel):
+    task_id: int
+    title: str
+    hours: float
+
+
+class ScheduledWeek(BaseModel):
+    week: int
+    tasks: list[ScheduledTask]
+    total_hours: float
+
+
+class PlanRebalance(BaseModel):
+    overloaded: bool
+    hours_per_week: float
+    total_estimated_hours: float
+    weeks_needed: int
+    schedule: list[ScheduledWeek]

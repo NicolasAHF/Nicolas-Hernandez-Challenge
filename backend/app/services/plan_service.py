@@ -5,6 +5,9 @@ from ..repositories.plan_repository import PlanRepository
 from ..repositories.user_repository import UserRepository
 from ..schemas.study_plan import (
     PlanMetrics,
+    PlanRebalance,
+    ScheduledTask,
+    ScheduledWeek,
     StudyPlanCreate,
     StudyPlanRead,
     StudyPlanUpdate,
@@ -60,4 +63,82 @@ class PlanService:
             completion_percentage=completion_percentage,
             total_estimated_hours=total_estimated_hours,
             completed_hours=completed_hours,
+        )
+
+    def get_rebalance(self, plan_id: int) -> PlanRebalance:
+        plan = self.repo.get_by_id(plan_id)
+        if not plan:
+            raise HTTPException(status_code=404, detail="Plan not found")
+
+        tasks = sorted(plan.tasks, key=lambda t: t.id)
+        total = sum(t.estimated_hours for t in tasks)
+
+        if total <= plan.hours_per_week:
+            return PlanRebalance(
+                overloaded=False,
+                hours_per_week=plan.hours_per_week,
+                total_estimated_hours=total,
+                weeks_needed=1 if tasks else 0,
+                schedule=[],
+            )
+
+        schedule = self._schedule_into_weeks(tasks, plan.hours_per_week)
+        return PlanRebalance(
+            overloaded=True,
+            hours_per_week=plan.hours_per_week,
+            total_estimated_hours=total,
+            weeks_needed=len(schedule),
+            schedule=schedule,
+        )
+
+    def _schedule_into_weeks(
+        self, tasks: list, hours_per_week: float
+    ) -> list[ScheduledWeek]:
+        units = self._to_weekly_units(tasks, hours_per_week)
+        weeks: list[ScheduledWeek] = []
+        current: list[ScheduledTask] = []
+        current_hours = 0.0
+        for unit in units:
+            if current and current_hours + unit.hours > hours_per_week:
+                weeks.append(self._build_week(len(weeks) + 1, current, current_hours))
+                current = []
+                current_hours = 0.0
+            current.append(unit)
+            current_hours += unit.hours
+        if current:
+            weeks.append(self._build_week(len(weeks) + 1, current, current_hours))
+        return weeks
+
+    @staticmethod
+    def _to_weekly_units(tasks: list, hours_per_week: float) -> list[ScheduledTask]:
+        units: list[ScheduledTask] = []
+        for task in tasks:
+            if task.estimated_hours <= hours_per_week:
+                units.append(
+                    ScheduledTask(
+                        task_id=task.id, title=task.title, hours=task.estimated_hours
+                    )
+                )
+                continue
+            remaining = task.estimated_hours
+            part = 1
+            while remaining > 0:
+                chunk = min(hours_per_week, remaining)
+                units.append(
+                    ScheduledTask(
+                        task_id=task.id,
+                        title=f"{task.title} -{part}",
+                        hours=round(chunk, 2),
+                    )
+                )
+                remaining = round(remaining - chunk, 2)
+                part += 1
+        return units
+
+    @staticmethod
+    def _build_week(
+        week: int, units: list[ScheduledTask], total_hours: float
+    ) -> ScheduledWeek:
+        return ScheduledWeek(
+            week=week, tasks=list(units), total_hours=round(total_hours, 2)
         )

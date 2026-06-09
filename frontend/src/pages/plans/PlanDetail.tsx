@@ -9,6 +9,7 @@ import {
 } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import {
+  IconAlertTriangle,
   IconArrowLeft,
   IconCalendar,
   IconCircleCheck,
@@ -55,6 +56,12 @@ export default function PlanDetail() {
   const { data: metrics } = useQuery({
     queryKey: ["metrics", id],
     queryFn: () => api.getPlanMetrics(id),
+    enabled: !!id,
+  });
+
+  const { data: rebalance } = useQuery({
+    queryKey: ["rebalance", id],
+    queryFn: () => api.getPlanRebalance(id),
     enabled: !!id,
   });
 
@@ -160,6 +167,45 @@ export default function PlanDetail() {
             </div>
           </div>
         </div>
+
+        {rebalance?.overloaded && (
+          <div className={styles.rebalanceCard}>
+            <Group gap="sm" align="flex-start" wrap="nowrap" mb="md">
+              <IconAlertTriangle size={20} color="var(--c-turquoise)" />
+              <div>
+                <Text className={styles.rebalanceTitle}>Plan overloaded</Text>
+                <Text className={styles.rebalanceSub}>
+                  {rebalance.total_estimated_hours}h of tasks won't fit in{" "}
+                  {rebalance.hours_per_week}h / week. Spread over{" "}
+                  {rebalance.weeks_needed} weeks:
+                </Text>
+              </div>
+            </Group>
+            <div className={styles.rebalanceWeeks}>
+              {rebalance.schedule.map((wk) => (
+                <div key={wk.week} className={styles.rebalanceWeek}>
+                  <Group justify="space-between" mb="xs">
+                    <Text className={styles.rebalanceWeekLabel}>
+                      Week {wk.week}
+                    </Text>
+                    <Badge color="cyan" variant="light" size="sm">
+                      {wk.total_hours}h
+                    </Badge>
+                  </Group>
+                  {wk.tasks.map((t, i) => (
+                    <div
+                      key={`${t.task_id}-${i}`}
+                      className={styles.rebalanceRow}
+                    >
+                      <Text className={styles.rebalanceTaskTitle}>{t.title}</Text>
+                      <Text className={styles.rebalanceTaskHours}>{t.hours}h</Text>
+                    </div>
+                  ))}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         <div className={styles.tasksSection}>
           <Group justify="space-between" mb="lg">
