@@ -26,21 +26,22 @@ Notes / next step:
 
 ---
 
-## Feature: Plan progress & metrics  ⬜
+## Feature: Plan progress & metrics  🧪
 
 > As a user, I want to see progress and key metrics of my study plan, so that I can
 > understand how I am advancing.
 
 Requirements:
-- [ ] `GET /plans/{id}/metrics` endpoint
-- [ ] Response includes: total tasks, completed tasks, completion percentage,
+- [x] `GET /plans/{id}/metrics` endpoint
+- [x] Response includes: total tasks, completed tasks, completion percentage,
       total estimated hours, completed hours
-- [ ] Calculations done in the service layer
-- [ ] Performant, no duplicated logic across layers
-- [ ] Metrics visible in the plan detail view (frontend)
+- [x] Calculations done in the service layer (`PlanService.get_metrics`)
+- [x] Performant, no duplicated logic across layers (frontend consumes the endpoint)
+- [x] Metrics visible in the plan detail view (frontend)
 
 Branch: `feat/plan-metrics` · PR: —
-Notes / next step:
+Notes / next step: implemented (see DECISIONS.md 2026-06-09). 26 backend tests green
+(4 new metrics tests), frontend builds. Awaiting review/merge.
 
 ---
 
