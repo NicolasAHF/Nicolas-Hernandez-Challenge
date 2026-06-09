@@ -8,6 +8,7 @@ A study planning app to organize goals, plans, and tasks. JWT-based auth, progre
 |------------|-----------------------------------------------|
 | Backend    | Python 3.12, FastAPI, SQLAlchemy 2, uv        |
 | Database   | PostgreSQL 16                                 |
+| Cache      | Redis 7 (plan metrics)                        |
 | Migrations | Alembic                                       |
 | Frontend   | React 18, TypeScript, Vite, Mantine 7         |
 | Container  | Docker Compose                                |

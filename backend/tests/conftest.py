@@ -1,4 +1,6 @@
 import pytest
+from app.api.deps import get_cache
+from app.core.cache import InMemoryCache
 from app.core.database import get_db
 from app.main import app
 from app.models.base import Base
@@ -19,7 +21,12 @@ def reset_db():
 
 
 @pytest.fixture
-def client():
+def cache():
+    return InMemoryCache()
+
+
+@pytest.fixture
+def client(cache):
     def _override_get_db():
         db = _TestingSession()
         try:
@@ -28,6 +35,7 @@ def client():
             db.close()
 
     app.dependency_overrides[get_db] = _override_get_db
+    app.dependency_overrides[get_cache] = lambda: cache
     with TestClient(app) as c:
         yield c
     app.dependency_overrides.clear()
