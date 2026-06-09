@@ -3,7 +3,12 @@ from sqlalchemy.orm import Session
 
 from ..repositories.plan_repository import PlanRepository
 from ..repositories.user_repository import UserRepository
-from ..schemas.study_plan import StudyPlanCreate, StudyPlanRead, StudyPlanUpdate
+from ..schemas.study_plan import (
+    PlanMetrics,
+    StudyPlanCreate,
+    StudyPlanRead,
+    StudyPlanUpdate,
+)
 
 
 class PlanService:
@@ -34,3 +39,25 @@ class PlanService:
         if not plan:
             raise HTTPException(status_code=404, detail="Plan not found")
         return StudyPlanRead.model_validate(plan)
+
+    def get_metrics(self, plan_id: int) -> PlanMetrics:
+        plan = self.repo.get_by_id(plan_id)
+        if not plan:
+            raise HTTPException(status_code=404, detail="Plan not found")
+
+        tasks = plan.tasks
+        total_tasks = len(tasks)
+        completed_tasks = sum(1 for t in tasks if t.completed)
+        total_estimated_hours = sum(t.estimated_hours for t in tasks)
+        completed_hours = sum(t.estimated_hours for t in tasks if t.completed)
+        completion_percentage = (
+            round(completed_tasks / total_tasks * 100) if total_tasks else 0
+        )
+
+        return PlanMetrics(
+            total_tasks=total_tasks,
+            completed_tasks=completed_tasks,
+            completion_percentage=completion_percentage,
+            total_estimated_hours=total_estimated_hours,
+            completed_hours=completed_hours,
+        )

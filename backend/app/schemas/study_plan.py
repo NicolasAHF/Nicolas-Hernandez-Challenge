@@ -25,3 +25,11 @@ class StudyPlanRead(BaseModel):
 class StudyPlanUpdate(BaseModel):
     description: str | None = None
     target_date: date | None = None
+
+
+class PlanMetrics(BaseModel):
+    total_tasks: int
+    completed_tasks: int
+    completion_percentage: int
+    total_estimated_hours: float
+    completed_hours: float
