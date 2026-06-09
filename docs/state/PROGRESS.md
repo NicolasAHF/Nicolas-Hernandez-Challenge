@@ -47,24 +47,27 @@ Notes / next step: implemented (see DECISIONS.md 2026-06-09). 26 backend tests g
 
 ---
 
-## Feature: Redis caching for plan metrics  ⬜
+## Feature: Redis caching for plan metrics  🧪
 
 > As a user, I want plan metrics to load quickly even for large plans, so that the
 > application remains responsive.
 
 Requirements:
-- [ ] Introduce Redis as a caching layer
-- [ ] Cache the response of `GET /plans/{id}/metrics`
-- [ ] Define a cache key strategy (e.g. `plan:{id}:metrics`)
-- [ ] Invalidate cache when tasks are created, updated, or deleted, and on task
-      completion-status changes
-- [ ] TTL strategy defined and justified (see `DECISIONS.md`)
-- [ ] Graceful fallback if Redis is unavailable
-- [ ] Service/repository separation not broken
-- [ ] UI reflects up-to-date metrics after task changes
+- [x] Introduce Redis as a caching layer (`core/cache.py`, injected via `deps.py`)
+- [x] Cache the response of `GET /plans/{id}/metrics` (cache-aside in the service)
+- [x] Define a cache key strategy (`plan:{id}:metrics`)
+- [x] Invalidate cache when tasks are created or updated/toggled (no delete endpoint
+      exists; see DECISIONS)
+- [x] TTL strategy defined and justified (300s — see `DECISIONS.md`)
+- [x] Graceful fallback if Redis is unavailable (`RedisCache` swallows errors)
+- [x] Service/repository separation not broken (cache is infra in `core/`)
+- [x] UI reflects up-to-date metrics after task changes (metrics query invalidation)
 
 Branch: `feat/redis-cache` · PR: —
-Notes / next step:
+Notes / next step: implemented (see DECISIONS.md 2026-06-09). 37 backend tests green
+(5 cache tests: hit, invalidate-on-create, invalidate-on-toggle, error-swallowing,
+endpoint-survives-redis-down). docker-compose adds a redis service. Awaiting
+review/merge.
 
 ---
 

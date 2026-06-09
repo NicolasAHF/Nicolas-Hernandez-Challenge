@@ -1,6 +1,8 @@
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
 
+from ..core.cache import Cache, metrics_cache_key
+from ..core.config import settings
 from ..repositories.plan_repository import PlanRepository
 from ..repositories.user_repository import UserRepository
 from ..schemas.study_plan import (
@@ -15,9 +17,10 @@ from ..schemas.study_plan import (
 
 
 class PlanService:
-    def __init__(self, db: Session) -> None:
+    def __init__(self, db: Session, cache: Cache) -> None:
         self.repo = PlanRepository(db)
         self.user_repo = UserRepository(db)
+        self.cache = cache
 
     def create_plan(self, data: StudyPlanCreate) -> StudyPlanRead:
         if not self.user_repo.get_by_id(data.user_id):
@@ -44,6 +47,16 @@ class PlanService:
         return StudyPlanRead.model_validate(plan)
 
     def get_metrics(self, plan_id: int) -> PlanMetrics:
+        key = metrics_cache_key(plan_id)
+        cached = self.cache.get_json(key)
+        if cached is not None:
+            return PlanMetrics(**cached)
+
+        metrics = self._compute_metrics(plan_id)
+        self.cache.set_json(key, metrics.model_dump(), settings.METRICS_CACHE_TTL)
+        return metrics
+
+    def _compute_metrics(self, plan_id: int) -> PlanMetrics:
         plan = self.repo.get_by_id(plan_id)
         if not plan:
             raise HTTPException(status_code=404, detail="Plan not found")

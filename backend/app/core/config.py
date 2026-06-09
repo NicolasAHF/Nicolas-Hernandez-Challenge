@@ -6,6 +6,8 @@ class Settings(BaseSettings):
     JWT_SECRET: str = "dev-secret-change-in-production"
     JWT_ALGORITHM: str = "HS256"
     JWT_EXPIRE_DAYS: int = 90
+    REDIS_URL: str = "redis://localhost:6379/0"
+    METRICS_CACHE_TTL: int = 300
 
     model_config = {"env_file": ".env"}
 
