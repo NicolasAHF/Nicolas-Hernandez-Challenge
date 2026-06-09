@@ -16,6 +16,40 @@ Template:
 
 ---
 
+## 2026-06-09 — Redis cache for plan metrics  [cache]
+
+**Context:** `GET /plans/{id}/metrics` recomputes from the DB every call. Cache it in
+Redis with cache-aside, without breaking service/repository separation, and degrade
+gracefully if Redis is down.
+
+**Decisions:**
+- **Injected `Cache` abstraction.** `core/cache.py` defines a `Cache` protocol with
+  `RedisCache` (real) and `InMemoryCache` (tests) implementations, injected into the
+  services via `deps.py` like everything else. Chosen over a module-level Redis client
+  so the cache is swappable and testable without a live Redis or extra test deps, and
+  to match the codebase's dependency-injection style. Caching stays an infra concern
+  in `core/`; repositories remain pure DB access.
+- **Cache-aside in the service.** `PlanService.get_metrics` checks the cache, computes
+  from the DB on a miss, and stores the result. The 404 path is unaffected (a missing
+  plan is never cached).
+- **Key strategy:** `plan:{id}:metrics`, built by one shared helper so the service and
+  the invalidation agree.
+- **TTL = 300s.** Every task write invalidates the key, so the TTL is a backstop for
+  missed invalidations / orphaned keys, not the primary freshness mechanism. 5 minutes
+  bounds staleness while avoiding churn. Configurable via `settings.METRICS_CACHE_TTL`.
+- **Invalidation** on task create and update (toggle) in `TaskService`, after the DB
+  commit. There is no delete-task endpoint in the app, so delete invalidation is not
+  wired; the hook would go in the same place if one were added.
+- **Graceful fallback:** `RedisCache` swallows `redis.RedisError` — reads return a
+  miss (recompute from DB), writes are best-effort no-ops. No request fails because
+  Redis is unavailable, and the app boots without it (lazy connection).
+
+**Trade-offs:** the `Cache` abstraction adds a small indirection the codebase didn't
+have before; accepted because it keeps Redis out of the services/repositories and
+makes the behaviour testable deterministically.
+
+---
+
 ## 2026-06-09 — Plan rebalancing: weekly schedule across weeks  [rebalance]
 
 **Context:** `GET /plans/{id}/rebalance` must, when a plan's total task hours exceed
