@@ -63,6 +63,13 @@ export type AuthResponse = {
   token_type: string;
   user: User;
 };
+export type PlanMetrics = {
+  total_tasks: number;
+  completed_tasks: number;
+  completion_percentage: number;
+  total_estimated_hours: number;
+  completed_hours: number;
+};
 
 export const api = {
   register: (name: string, password: string) =>
@@ -93,6 +100,8 @@ export const api = {
     req<StudyPlan>("/plans", { method: "POST", body: JSON.stringify(data) }),
 
   getPlan: (id: number) => req<StudyPlan>(`/plans/${id}`),
+
+  getPlanMetrics: (id: number) => req<PlanMetrics>(`/plans/${id}/metrics`),
 
   updatePlan: (
     planId: number,

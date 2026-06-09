@@ -52,6 +52,12 @@ export default function PlanDetail() {
     enabled: !!id,
   });
 
+  const { data: metrics } = useQuery({
+    queryKey: ["metrics", id],
+    queryFn: () => api.getPlanMetrics(id),
+    enabled: !!id,
+  });
+
   const toggleTask = useMutation({
     mutationFn: ({
       taskId,
@@ -62,16 +68,16 @@ export default function PlanDetail() {
     }) => api.toggleTask(id, taskId, completed),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["tasks", id] });
+      qc.invalidateQueries({ queryKey: ["metrics", id] });
       qc.invalidateQueries({ queryKey: ["taskStats"] });
     },
   });
 
-  const completedCount = tasks.filter((t) => t.completed).length;
-  const totalCount = tasks.length;
+  const completedCount = metrics?.completed_tasks ?? 0;
+  const totalCount = metrics?.total_tasks ?? 0;
+  const progressPct = metrics?.completion_percentage ?? 0;
+  const totalHours = metrics?.total_estimated_hours ?? 0;
   const isComplete = totalCount > 0 && completedCount === totalCount;
-  const progressPct =
-    totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
-  const totalHours = tasks.reduce((s, t) => s + t.estimated_hours, 0);
 
   if (planLoading) {
     return (
@@ -161,7 +167,7 @@ export default function PlanDetail() {
               Tasks
             </Title>
             <Group gap="sm">
-              {tasks.length > 0 && (
+              {totalCount > 0 && (
                 <Badge color="cyan" variant="light" size="sm">
                   {totalHours}h total
                 </Badge>

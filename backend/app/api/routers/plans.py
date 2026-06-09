@@ -1,6 +1,11 @@
 from fastapi import APIRouter, Depends
 
-from ...schemas.study_plan import StudyPlanCreate, StudyPlanRead, StudyPlanUpdate
+from ...schemas.study_plan import (
+    PlanMetrics,
+    StudyPlanCreate,
+    StudyPlanRead,
+    StudyPlanUpdate,
+)
 from ...schemas.study_task import StudyTaskCreate, StudyTaskRead, StudyTaskUpdate
 from ...services.plan_service import PlanService
 from ...services.task_service import TaskService
@@ -17,6 +22,11 @@ def create_plan(data: StudyPlanCreate, svc: PlanService = Depends(get_plan_servi
 @router.get("/{plan_id}", response_model=StudyPlanRead)
 def get_plan(plan_id: int, svc: PlanService = Depends(get_plan_service)):
     return svc.get_plan(plan_id)
+
+
+@router.get("/{plan_id}/metrics", response_model=PlanMetrics)
+def get_plan_metrics(plan_id: int, svc: PlanService = Depends(get_plan_service)):
+    return svc.get_metrics(plan_id)
 
 
 @router.patch("/{plan_id}", response_model=StudyPlanRead)
