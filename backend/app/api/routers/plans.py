@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends
 
 from ...schemas.study_plan import (
     PlanMetrics,
+    PlanRebalance,
     StudyPlanCreate,
     StudyPlanRead,
     StudyPlanUpdate,
@@ -27,6 +28,11 @@ def get_plan(plan_id: int, svc: PlanService = Depends(get_plan_service)):
 @router.get("/{plan_id}/metrics", response_model=PlanMetrics)
 def get_plan_metrics(plan_id: int, svc: PlanService = Depends(get_plan_service)):
     return svc.get_metrics(plan_id)
+
+
+@router.get("/{plan_id}/rebalance", response_model=PlanRebalance)
+def get_plan_rebalance(plan_id: int, svc: PlanService = Depends(get_plan_service)):
+    return svc.get_rebalance(plan_id)
 
 
 @router.patch("/{plan_id}", response_model=StudyPlanRead)

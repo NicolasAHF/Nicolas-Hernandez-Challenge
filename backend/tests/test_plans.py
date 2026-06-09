@@ -172,3 +172,137 @@ def test_plan_metrics_no_tasks(client, user):
 def test_plan_metrics_not_found(client):
     response = client.get("/plans/999/metrics")
     assert response.status_code == 404
+
+
+def test_plan_rebalance_overloaded_schedules_whole_tasks_across_weeks(client, user):
+    plan = client.post(
+        "/plans",
+        json={"user_id": user["id"], "goal": "Heavy plan", "hours_per_week": 10.0},
+    ).json()
+    t1 = _add_task(client, plan["id"], "Task A", 6.0)
+    t2 = _add_task(client, plan["id"], "Task B", 4.0)
+    t3 = _add_task(client, plan["id"], "Task C", 10.0)
+
+    response = client.get(f"/plans/{plan['id']}/rebalance")
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "overloaded": True,
+        "hours_per_week": 10.0,
+        "total_estimated_hours": 20.0,
+        "weeks_needed": 2,
+        "schedule": [
+            {
+                "week": 1,
+                "tasks": [
+                    {"task_id": t1["id"], "title": "Task A", "hours": 6.0},
+                    {"task_id": t2["id"], "title": "Task B", "hours": 4.0},
+                ],
+                "total_hours": 10.0,
+            },
+            {
+                "week": 2,
+                "tasks": [{"task_id": t3["id"], "title": "Task C", "hours": 10.0}],
+                "total_hours": 10.0,
+            },
+        ],
+    }
+
+
+def test_plan_rebalance_splits_task_larger_than_weekly_budget(client, user):
+    plan = client.post(
+        "/plans",
+        json={"user_id": user["id"], "goal": "Big task", "hours_per_week": 10.0},
+    ).json()
+    t = _add_task(client, plan["id"], "Huge task", 25.0)
+
+    response = client.get(f"/plans/{plan['id']}/rebalance")
+
+    assert response.status_code == 200
+    assert response.json() == {
+        "overloaded": True,
+        "hours_per_week": 10.0,
+        "total_estimated_hours": 25.0,
+        "weeks_needed": 3,
+        "schedule": [
+            {
+                "week": 1,
+                "tasks": [{"task_id": t["id"], "title": "Huge task -1", "hours": 10.0}],
+                "total_hours": 10.0,
+            },
+            {
+                "week": 2,
+                "tasks": [{"task_id": t["id"], "title": "Huge task -2", "hours": 10.0}],
+                "total_hours": 10.0,
+            },
+            {
+                "week": 3,
+                "tasks": [{"task_id": t["id"], "title": "Huge task -3", "hours": 5.0}],
+                "total_hours": 5.0,
+            },
+        ],
+    }
+
+
+def test_plan_rebalance_split_remainder_shares_week_with_next_task(client, user):
+    plan = client.post(
+        "/plans",
+        json={"user_id": user["id"], "goal": "Mixed", "hours_per_week": 10.0},
+    ).json()
+    big = _add_task(client, plan["id"], "Big", 12.0)
+    small = _add_task(client, plan["id"], "Small", 3.0)
+
+    response = client.get(f"/plans/{plan['id']}/rebalance")
+
+    assert response.json()["schedule"] == [
+        {
+            "week": 1,
+            "tasks": [{"task_id": big["id"], "title": "Big -1", "hours": 10.0}],
+            "total_hours": 10.0,
+        },
+        {
+            "week": 2,
+            "tasks": [
+                {"task_id": big["id"], "title": "Big -2", "hours": 2.0},
+                {"task_id": small["id"], "title": "Small", "hours": 3.0},
+            ],
+            "total_hours": 5.0,
+        },
+    ]
+
+
+def test_plan_rebalance_not_overloaded(client, user):
+    plan = client.post(
+        "/plans",
+        json={"user_id": user["id"], "goal": "Light plan", "hours_per_week": 10.0},
+    ).json()
+    _add_task(client, plan["id"], "Task A", 3.0)
+    _add_task(client, plan["id"], "Task B", 4.0)
+
+    response = client.get(f"/plans/{plan['id']}/rebalance")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["overloaded"] is False
+    assert body["weeks_needed"] == 1
+    assert body["schedule"] == []
+
+
+def test_plan_rebalance_no_tasks(client, user):
+    plan = client.post(
+        "/plans",
+        json={"user_id": user["id"], "goal": "Empty plan", "hours_per_week": 5.0},
+    ).json()
+
+    response = client.get(f"/plans/{plan['id']}/rebalance")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["overloaded"] is False
+    assert body["weeks_needed"] == 0
+    assert body["schedule"] == []
+
+
+def test_plan_rebalance_not_found(client):
+    response = client.get("/plans/999/rebalance")
+    assert response.status_code == 404

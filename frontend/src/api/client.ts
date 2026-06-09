@@ -70,6 +70,23 @@ export type PlanMetrics = {
   total_estimated_hours: number;
   completed_hours: number;
 };
+export type ScheduledTask = {
+  task_id: number;
+  title: string;
+  hours: number;
+};
+export type ScheduledWeek = {
+  week: number;
+  tasks: ScheduledTask[];
+  total_hours: number;
+};
+export type PlanRebalance = {
+  overloaded: boolean;
+  hours_per_week: number;
+  total_estimated_hours: number;
+  weeks_needed: number;
+  schedule: ScheduledWeek[];
+};
 
 export const api = {
   register: (name: string, password: string) =>
@@ -102,6 +119,9 @@ export const api = {
   getPlan: (id: number) => req<StudyPlan>(`/plans/${id}`),
 
   getPlanMetrics: (id: number) => req<PlanMetrics>(`/plans/${id}/metrics`),
+
+  getPlanRebalance: (id: number) =>
+    req<PlanRebalance>(`/plans/${id}/rebalance`),
 
   updatePlan: (
     planId: number,
