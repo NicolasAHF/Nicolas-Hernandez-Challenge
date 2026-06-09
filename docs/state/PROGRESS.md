@@ -26,7 +26,7 @@ Notes / next step:
 
 ---
 
-## Feature: Plan progress & metrics  ⬜
+## Feature: Plan progress & metrics  🟡
 
 > As a user, I want to see progress and key metrics of my study plan, so that I can
 > understand how I am advancing.
@@ -40,7 +40,10 @@ Requirements:
 - [ ] Metrics visible in the plan detail view (frontend)
 
 Branch: `feat/plan-metrics` · PR: —
-Notes / next step:
+Notes / next step: design decided (see DECISIONS.md 2026-06-09) — compute in
+service from loaded tasks; `%` by task count, integer 0–100, 0 tasks → 0;
+`completed_hours` = sum of estimated_hours where completed. Next: implement the
+vertical slice, tests first.
 
 ---
 
